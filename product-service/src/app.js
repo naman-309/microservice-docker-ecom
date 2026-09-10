@@ -1,15 +1,19 @@
 import express from "express";
+import productRoutes from "./modules/product/product.routes.js";
 
 const app = express();
 
-// Parse JSON request body
+// Parse JSON body
 app.use(express.json());
 
-// Test route
+// Health check
 app.get("/", (req, res) => {
     res.json({
         message: "Product Service is running",
     });
 });
+
+// Product routes
+app.use("/api/products", productRoutes);
 
 export default app;
