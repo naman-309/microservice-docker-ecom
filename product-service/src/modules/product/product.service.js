@@ -40,7 +40,10 @@ const getAllProducts = async () => {
     // Save fresh products in Redis
     await redisClient.set(
         "products",
-        JSON.stringify(products)
+        JSON.stringify(products),
+        {
+            EX: 60, // Set expiration time (in seconds)
+        }
     );
 
     console.log("Products saved in Redis");
@@ -87,8 +90,70 @@ const getProductById = async (id) => {
     return product;
 };
 
+// Update Product
+const updateProduct = async (id, productData) => {
+    // 1. Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+        where: {
+            id: id,
+        },
+    });
+
+    if (!existingProduct) {
+        return null;
+    }
+
+    // 2. Update product in database
+    const updatedProduct = await prisma.product.update({
+        where: {
+            id: id,
+        },
+        data: productData,
+    });
+
+    // 3. Delete single product cache
+    await redisClient.del(`product:${id}`);
+
+    // 4. Delete all products cache
+    await redisClient.del("products");
+
+    console.log("Product caches deleted");
+
+    return updatedProduct;
+};
+
+// Delete Product
+const deleteProduct = async (id) => {
+    // 1. Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+        where: {
+            id: id,
+        },
+    });
+
+    if (!existingProduct) {
+        return null;
+    }
+
+    // 2. Delete product from database
+    const deletedProduct = await prisma.product.delete({
+        where: {
+            id: id,
+        },
+    });
+
+    // 3. Delete single product cache
+    await redisClient.del(`product:${id}`);
+
+    // 4. Delete all products cache
+    await redisClient.del("products");
+
+    console.log("Product caches deleted");
+
+    return deletedProduct;
+};
 export {
     createProduct,
     getAllProducts,
-    getProductById
+    getProductById, updateProduct, deleteProduct
 };
