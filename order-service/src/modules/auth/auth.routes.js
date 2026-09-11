@@ -2,7 +2,11 @@ import express from "express";
 import {
     register,
     login,
-    getProfile, logout
+    getProfile,
+    logout,
+    forgotPassword,
+    verifyOtp,
+    resetPassword,
 } from "./auth.controller.js";
 
 import authenticateUser from "../../middleware/auth.middleware.js";
@@ -20,4 +24,10 @@ router.get("/profile", authenticateUser, getProfile);
 // Logout
 router.post("/logout", logout);
 
+// Forgot Password
+router.post("/forgot-password", forgotPassword);
+// Verify OTP
+router.post("/verify-otp", verifyOtp);
+// Reset Password
+router.post("/reset-password", resetPassword);
 export default router;

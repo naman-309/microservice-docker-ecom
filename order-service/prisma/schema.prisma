@@ -8,21 +8,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user")
-  orders    Order[]
-  createdAt DateTime @default(now())
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  password       String
+  role           String          @default("user")
+  orders         Order[]
+  createdAt      DateTime        @default(now())
+  passwordResets PasswordReset[]
 }
 
 model Order {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   totalAmount Float
-  status      String      @default("pending")
-  createdAt   DateTime    @default(now())
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
 
   user  User        @relation(fields: [userId], references: [id])
   items OrderItem[]
@@ -36,4 +37,14 @@ model OrderItem {
   price     Float
 
   order Order @relation(fields: [orderId], references: [id])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

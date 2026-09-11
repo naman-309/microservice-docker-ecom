@@ -1,6 +1,11 @@
 import jwt from "jsonwebtoken";
-import { registerUser, loginUser } from "./auth.service.js";
-
+import {
+    registerUser,
+    loginUser,
+    forgotPassword as forgotPasswordService,
+    verifyOtp as verifyOtpService,
+    resetPassword as resetPasswordService,
+} from "./auth.service.js";
 // Register User
 const register = async (req, res, next) => {
     try {
@@ -85,4 +90,56 @@ const logout = async (req, res, next) => {
     }
 };
 
-export { register, login, getProfile, logout };
+// Forgot Password
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        // Service ko email bhejna
+        await forgotPasswordService(email);
+
+        res.status(200).json({
+            message: "OTP sent successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// Verify OTP
+const verifyOtp = async (req, res, next) => {
+    try {
+        const { email, otp } = req.body;
+
+        const resetToken = await verifyOtpService(email, otp);
+
+        res.status(200).json({
+            message: "OTP verified successfully",
+            resetToken,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// Reset Password
+const resetPassword = async (req, res, next) => {
+    try {
+        const { resetToken, newPassword } = req.body;
+
+        await resetPasswordService(resetToken, newPassword);
+
+        res.status(200).json({
+            message: "Password reset successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+export {
+    register,
+    login,
+    getProfile,
+    logout,
+    forgotPassword,
+    verifyOtp,
+    resetPassword
+};
