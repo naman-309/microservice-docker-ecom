@@ -61,8 +61,7 @@ const createOrder = async (userId, orderData) => {
 
     return order
 };
-// Get My Orders
-// Get My Orders
+// Get My all Orders
 const getMyOrders = async (userId) => {
 
     // User ke orders ke liye Redis key
@@ -100,7 +99,119 @@ const getMyOrders = async (userId) => {
     return orders;
 };
 
+// Get Single Order
+const getOrderById = async (userId, orderId) => {
+
+    // User ka specific order database se find karo
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            userId,
+        },
+
+        include: {
+            items: true,
+        },
+    });
+
+    // Agar order nahi mila
+    if (!order) {
+        throw new Error("Order not found");
+    }
+
+    return order;
+};
+//// Update Order Status
+const updateOrderStatus = async (orderId, status) => {
+
+    // Order find karo
+    const order = await prisma.order.findUnique({
+        where: {
+            id: orderId,
+        },
+    });
+
+    // Order nahi mila
+    if (!order) {
+        throw new Error("Order not found");
+    }
+
+    // Status update karo
+    const updatedOrder = await prisma.order.update({
+        where: {
+            id: orderId,
+        },
+
+        data: {
+            status,
+        },
+    });
+
+    // Updated order return karo
+    return updatedOrder;
+};
+
+// Delete Order
+const deleteOrder = async (userId, orderId) => {
+
+    // 1. User ka order find karo
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            userId,
+        },
+        include: {
+            items: true,
+        },
+    });
+
+    if (!order) {
+        throw new Error("Order not found");
+    }
+
+    // 2. Har product ka stock wapas add karo
+    for (const item of order.items) {
+
+        const response = await axios.get(
+            `http://localhost:4001/api/products/${item.productId}`
+        );
+
+        const product = response.data.data;
+
+        const newStock = product.stock + item.quantity;
+
+        await axios.put(
+            `http://localhost:4001/api/products/${item.productId}`,
+            {
+                stock: newStock,
+            }
+        );
+    }
+
+    // 3. Pehle OrderItems delete karo
+    await prisma.orderItem.deleteMany({
+        where: {
+            orderId,
+        },
+    });
+
+    // 4. Ab main Order delete karo
+    const deletedOrder = await prisma.order.delete({
+        where: {
+            id: orderId,
+        },
+    });
+
+    // 5. Redis cache invalidate karo
+    await redisClient.del(`orders:${userId}`);
+
+    return deletedOrder;
+};
+
 export {
     createOrder,
     getMyOrders,
+    getOrderById,
+    updateOrderStatus,
+    deleteOrder,
 };
