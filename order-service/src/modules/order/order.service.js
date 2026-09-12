@@ -1,6 +1,7 @@
 import axios from "axios";
 import prisma from "../../config/db.js";
 import { redisClient } from "../../config/redis.js";
+import { publishOrderCreated } from "../../events/order.events.js";
 // Create Order
 const createOrder = async (userId, orderData) => {
     const { items } = orderData;
@@ -55,6 +56,14 @@ const createOrder = async (userId, orderData) => {
         include: {
             items: true,
         },
+    });
+
+    // Publish order created event
+    await publishOrderCreated({
+        orderId: order.id,
+        userId: order.userId,
+        items: order.items,
+        totalAmount: order.totalAmount,
     });
     // Old orders cache delete karo
     await redisClient.del(`orders:${userId}`);
