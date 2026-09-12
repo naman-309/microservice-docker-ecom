@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import app from "./app.js";
 import { connectRedis } from "./config/redis.js";
-
+import connectOrderEvents from "./events/order.events.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 4001;
@@ -11,6 +11,8 @@ const startServer = async () => {
     try {
         // Connect Redis before starting server
         await connectRedis();
+        // Connect to order events
+        await connectOrderEvents();
 
         // Start Express server
         app.listen(PORT, () => {

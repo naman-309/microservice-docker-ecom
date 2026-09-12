@@ -152,8 +152,41 @@ const deleteProduct = async (id) => {
 
     return deletedProduct;
 };
+const reduceProductStock = async (productId, quantity) => {
+    const product = await prisma.product.findUnique({
+        where: {
+            id: productId,
+        },
+    });
+
+    if (!product) {
+        console.log(`Product not found: ${productId}`);
+        return;
+    }
+
+    if (product.stock < quantity) {
+        console.log(`Not enough stock for: ${product.name}`);
+        return;
+    }
+
+    const updatedProduct = await prisma.product.update({
+        where: {
+            id: productId,
+        },
+        data: {
+            stock: product.stock - quantity,
+        },
+    });
+
+    await redisClient.del(`product:${productId}`);
+    await redisClient.del("products");
+
+    console.log(
+        `Stock reduced: ${product.name} | New stock: ${updatedProduct.stock}`
+    );
+};
 export {
     createProduct,
     getAllProducts,
-    getProductById, updateProduct, deleteProduct
+    getProductById, updateProduct, deleteProduct, reduceProductStock
 };
