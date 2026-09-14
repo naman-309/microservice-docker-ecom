@@ -276,3 +276,57 @@ Nginx / API Gateway
   ├── /api/products → Product Service :4001
   │
   └── /api/orders   → Order Service :4002
+
+  🚀 Ab Deployment Roadmap
+
+Hum ekdum step-by-step jayenge:
+
+STEP 1
+AWS / EC2 samajhna
+        ↓
+STEP 2
+AWS account + billing safety
+        ↓
+STEP 3
+EC2 Ubuntu instance create
+        ↓
+STEP 4
+Security Group configure
+        ↓
+STEP 5
+EC2 mein SSH se login
+        ↓
+STEP 6
+Ubuntu basic commands
+        ↓
+STEP 7
+EC2 par Docker install
+        ↓
+STEP 8
+Docker Compose install/check
+        ↓
+STEP 9
+GitHub se project EC2 par lana
+        ↓
+STEP 10
+.env / secrets configure
+        ↓
+STEP 11
+Docker Compose build
+        ↓
+STEP 12
+Containers run
+        ↓
+STEP 13
+Nginx Gateway test
+        ↓
+STEP 14
+Public IP se API test
+        ↓
+STEP 15
+Complete backend deployment test
+        ↓
+STEP 16
+EC2 + resources CLEANUP
+        ↓
+        ✅ Deployment practice complete
