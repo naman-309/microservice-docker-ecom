@@ -1,0 +1,20 @@
+services:
+
+  product-service:
+    build: ./product-service
+    env_file:
+      - ./product-service/.env
+    expose:
+      - "4001"
+
+  order-service:
+    build: ./order-service
+    env_file:
+      - ./order-service/.env
+    expose:
+      - "4002"
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:80"

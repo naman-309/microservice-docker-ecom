@@ -19,7 +19,7 @@ const createOrder = async (userId, orderData) => {
 
         // Product Service se product lena
         const response = await axios.get(
-            `http://localhost:4001/api/products/${item.productId}`
+            `http://product-service:4001/api/products/${item.productId}`
         );
 
         const product = response.data.data;

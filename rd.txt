@@ -1,0 +1,278 @@
+                         👤 CUSTOMER
+                              │
+                              ↓
+                         🖥️ REACT UI
+                              │
+                              ↓
+                       🌐 NGINX GATEWAY
+                              │
+                 ┌────────────┴────────────┐
+                 ↓                         ↓
+          📦 PRODUCT SERVICE         🛒 ORDER SERVICE
+                 │                         │
+          ┌──────┴──────┐            ┌─────┴─────┐
+          ↓             ↓            ↓           ↓
+       Neon DB       Redis        Neon DB      Redis
+          │                         │
+          ↓                         ↓
+      Products                    Orders
+
+
+                   FORGOT PASSWORD
+                    ↓
+            User email deta hai
+                    ↓
+             User exists?
+               ↓        ↓
+             NO         YES
+             ↓           ↓
+          Error      Generate OTP
+                         ↓
+                    Save in DB
+                         ↓
+                  Send Email
+                         ↓
+              User receives OTP
+                         ↓
+                 Verify OTP
+                         ↓
+              OTP correct + valid?
+                    ↓
+                   YES
+                    ↓
+              OTP DELETE
+                    ↓
+              New Password
+                    ↓
+              bcrypt.hash()
+                    ↓
+              Update User
+                    ↓
+             Password changed ✅
+
+
+             . Pub/Sub hota kya hai?
+
+Pub/Sub = Publish / Subscribe
+
+Simple language me:
+
+Ek service koi event/message announce karti hai, aur jis service ko us message me interest hai wo usko receive karti hai.
+
+
+
+Technology	Kaam
+PostgreSQL	Actual permanent data
+Redis Cache	Fast cached data
+Redis Pub/Sub	Event/message bhejna
+HTTP/Axios	Service se directly request/response
+
+
+                    ┌─────────────────────┐
+                    │    Order Service    │
+                    │                     │
+User ──→ POST ─────→│ Create Order        │
+                    │                     │
+                    │ Save Order DB       │
+                    └──────────┬──────────┘
+                               │
+                               │ order.created
+                               ↓
+                        ┌───────────────┐
+                        │ Redis Pub/Sub │
+                        └───────┬───────┘
+                                │
+                 ┌──────────────┴──────────────┐
+                 ↓                             ↓
+        ┌──────────────────┐          ┌──────────────────┐
+        │ Product Service  │          │ Email Handler    │
+        │                  │          │                  │
+        │ Reduce Stock     │          │ Send Confirmation│
+        └──────────────────┘          └──────────────────┘
+
+        Product APIs:
+
+POST    /api/products
+GET     /api/products
+GET     /api/products/:id
+PUT     /api/products/:id
+DELETE  /api/products/:id
+
+
+   Order APIs :
+POST    /api/orders
+GET     /api/orders
+GET     /api/orders/:id
+PUT     /api/orders/:id
+DELETE  /api/orders/:id
+
+                    CURRENT
+                       ↓
+             ✅ Product Service
+                       ↓
+              ✅ Order Service
+                       ↓
+                ✅ Redis Cache
+                       ↓
+                ✅ Redis Pub/Sub
+                       ↓
+              ✅ Stock + Email
+                       ↓
+             🔥 CODE REVIEW
+                       ↓
+                  🐳 Docker
+                       ↓
+              🌐 Nginx Gateway
+                       ↓
+          🐳 Docker Compose Final
+                       ↓
+              🧪 Complete Testing
+                       ↓
+             ⚠️ Production Cleanup
+                       ↓
+                 ☁️ AWS EC2
+                       ↓
+               ⚛️ React Frontend
+                       ↓
+              🚀 FINAL PROJECT
+
+
+
+              Concept	Simple meaning
+Image	Application ka packaged blueprint
+Container	Image ka running instance
+Dockerfile	Image banane ki instructions
+Docker Hub	Images ka online registry
+Port Mapping	Windows ↔ Container connection
+Docker Network	Containers ko aapas me connect karna
+Compose	Multiple containers ko manage karna
+Volume	Container ke bahar persistent data rakhna
+Environment Variables	Configuration/secrets ko code se alag rakhna
+
+
+Humara final Docker architecture roughly:
+
+                    Internet
+                       │
+                       ↓
+                  Nginx Gateway
+                       │
+              Docker Network
+                 /           \
+                ↓             ↓
+        Product Service   Order Service
+            :4001             :4002
+                │               │
+                ↓               ↓
+          Neon PostgreSQL   Neon PostgreSQL
+                │               │
+                └───────┬───────┘
+                        ↓
+                  Upstash Redis
+
+
+                  Hum sequence rakhenge:
+
+1. Product Service Dockerfile
+          ↓
+2. Product Service image
+          ↓
+3. Product container
+          ↓
+4. Environment variables
+          ↓
+5. Docker Compose
+          ↓
+6. Order Service container
+          ↓
+7. Docker Network
+          ↓
+8. localhost → product-service
+          ↓
+9. Redis connection
+          ↓
+10. Complete microservices test
+
+
+ecommerce-microservices/
+└── product-service/   ← yahin terminal
+1. Build command
+docker build -t product-service .
+
+
+
+docker images
+// tol gvie values  env  to cpntainer  
+docker run --env-file .env -p 4001:4001 product-service
+
+
+API Gateway = ROLE / CONCEPT
+
+API Gateway ka matlab:
+
+Backend services ke liye centralized entry point.
+
+Nginx = SOFTWARE
+
+Nginx ko hum us API Gateway role ko perform karne ke liye use kar sakte hain
+
+Dockerfile = service ka image kaise banega
+
+Docker Compose = containers ko kaise run/connect/manage karna hai
+
+API Gateway = ek central entry point for backend services
+
+Nginx = humare project mein API Gateway ka kaam karega
+
+                         Docker Compose
+                              │
+             ┌────────────────┼────────────────┐
+             │                │                │
+             ▼                ▼                ▼
+       Product Service   Order Service      Nginx
+           :4001             :4002             :80
+                                               ▲
+                                               │
+                                      localhost:8080
+
+                                      localhost:8080/api/products
+              │
+              ▼
+        Nginx :80
+              │
+              ▼
+product-service:4001
+
+
+localhost:8080/api/orders
+              │
+              ▼
+        Nginx :80
+              │
+              ▼
+ order-service:4002
+
+
+ 🧠 Ab tak Nginx se humne kya seekha?
+nginx.conf → routing instructions
+Dockerfile → Nginx image banane ke instructions
+docker-compose.yml → Nginx container ko project ke baaki containers ke saath run karta hai
+8080:80 → host port 8080 → Nginx container port 80
+product-service:4001 → Docker internal service name
+/api/products → Product Service
+/api/orders → Order Service
+
+
+Tera understanding exactly sahi hai:
+
+Client
+  │
+  │ Only knows → localhost:8080
+  ▼
+Nginx / API Gateway
+  │
+  │ URL dekhta hai
+  │
+  ├── /api/products → Product Service :4001
+  │
+  └── /api/orders   → Order Service :4002
