@@ -1,0 +1,2388 @@
+# 🚀 E-Commerce Microservices
+
+## My Personal Project Handbook
+
+> Ye file mere liye hai — jab bhi mujhe project ka flow, technology, ports, Docker, Redis, Nginx ya deployment bhool jaye, is file ko ek baar read karunga.
+
+---
+
+# 1. 🧠 Project ka Main Idea
+
+Hum ek **Basic E-Commerce Microservices Platform** bana rahe hain.
+
+Is project mein main backend ko ek single application ki jagah multiple independent services mein divide kar raha hoon.
+
+### Main Services
+
+```text
+Product Service
+      ↓
+Products ka kaam
+
+Order Service
+      ↓
+Orders + Users + Authentication ka kaam
+```
+
+Frontend directly services se baat nahi karega.
+
+Frontend → Nginx → Proper Service
+
+---
+
+# 2. 🏗️ Complete Architecture
+
+```text
+                         👤 CUSTOMER
+                              │
+                              ▼
+                       ⚛️ REACT FRONTEND
+                              │
+                              ▼
+                     🌐 NGINX GATEWAY
+                        API GATEWAY
+                              │
+                 ┌────────────┴────────────┐
+                 │                         │
+                 ▼                         ▼
+        📦 PRODUCT SERVICE          🛒 ORDER SERVICE
+             :4001                      :4002
+                 │                         │
+          ┌──────┴──────┐            ┌─────┴─────┐
+          │             │            │           │
+          ▼             ▼            ▼           ▼
+       Neon DB       Redis        Neon DB      Redis
+          │                          │
+          ▼                          ▼
+      Products                    Orders
+```
+
+---
+
+# 3. 🧩 Technologies We Are Using
+
+| Technology     | Main Work                             |
+| -------------- | ------------------------------------- |
+| Node.js        | JavaScript runtime                    |
+| Express        | Backend API framework                 |
+| PostgreSQL     | Permanent database                    |
+| Neon           | Cloud PostgreSQL                      |
+| Prisma         | Database ORM                          |
+| Redis          | Cache + Pub/Sub                       |
+| Upstash Redis  | Cloud Redis                           |
+| Axios          | Service-to-service HTTP communication |
+| JWT            | Authentication                        |
+| bcrypt         | Password hashing                      |
+| Nodemailer     | Email sending                         |
+| Nginx          | API Gateway                           |
+| Docker         | Application containerization          |
+| Docker Compose | Multiple containers manage/run        |
+| Git/GitHub     | Source code management                |
+| AWS EC2        | Cloud server                          |
+| Ubuntu         | EC2 operating system                  |
+| React/Vite     | Frontend                              |
+
+---
+
+# 4. 🏠 Database Per Service
+
+Humne microservices mein databases ko separate rakha hai.
+
+```text
+Product Service
+      │
+      ▼
+ecommerce-product-db
+      │
+      ▼
+Neon PostgreSQL
+```
+
+Aur:
+
+```text
+Order Service
+      │
+      ▼
+ecommerce-order-db
+      │
+      ▼
+Neon PostgreSQL
+```
+
+### Important
+
+Product Service directly Order DB ko access nahi karta.
+
+Order Service directly Product DB ko access nahi karta.
+
+Har service apne database ki responsibility rakhti hai.
+
+---
+
+# 5. 📦 Product Service
+
+Product Service ka kaam:
+
+```text
+Create Product
+Get Products
+Get Product By ID
+Update Product
+Delete Product
+Reduce Stock
+```
+
+### Product Port
+
+```text
+4001
+```
+
+### Product APIs
+
+```text
+POST    /api/products
+GET     /api/products
+GET     /api/products/:id
+PUT     /api/products/:id
+DELETE  /api/products/:id
+```
+
+---
+
+# 6. 🛒 Order Service
+
+Order Service ka kaam:
+
+```text
+Users
+Authentication
+Orders
+Order status
+Forgot password
+OTP
+Email
+```
+
+### Order Port
+
+```text
+4002
+```
+
+### Order APIs
+
+```text
+POST    /api/orders
+GET     /api/orders
+GET     /api/orders/:id
+PUT     /api/orders/:id
+DELETE  /api/orders/:id
+```
+
+Authentication:
+
+```text
+/api/auth/...
+```
+
+---
+
+# 7. 🔐 Authentication Flow
+
+User login karta hai:
+
+```text
+User
+ │
+ ▼
+POST /api/auth/login
+ │
+ ▼
+Order Service :4002
+ │
+ ▼
+Find User in PostgreSQL
+ │
+ ▼
+bcrypt password verify
+ │
+ ▼
+JWT generate
+ │
+ ▼
+JWT cookie mein store
+ │
+ ▼
+User authenticated
+```
+
+Protected API:
+
+```text
+Request
+  │
+  ▼
+JWT Cookie
+  │
+  ▼
+authenticateUser middleware
+  │
+  ▼
+JWT verify
+  │
+  ▼
+req.user
+  │
+  ▼
+Controller
+```
+
+---
+
+# 8. 👑 Role Based Authorization
+
+User ke role ke basis par access control hota hai.
+
+Example:
+
+```text
+user
+admin
+```
+
+Admin-only API:
+
+```text
+Request
+   ↓
+authenticateUser
+   ↓
+authorizeRoles("admin")
+   ↓
+Admin allowed?
+   ↓
+YES → Controller
+NO  → 403
+```
+
+### Important
+
+Authentication = **Who are you?**
+
+Authorization = **What are you allowed to do?**
+
+---
+
+# 9. 🔑 Forgot Password Flow
+
+```text
+User email deta hai
+        ↓
+User exists?
+   ↓           ↓
+ NO           YES
+ ↓              ↓
+Error       Generate OTP
+               ↓
+          Save OTP in DB
+               ↓
+          Send OTP Email
+               ↓
+          User receives OTP
+               ↓
+           Verify OTP
+               ↓
+       OTP correct + valid?
+               ↓
+              YES
+               ↓
+           Delete OTP
+               ↓
+         New Password
+               ↓
+         bcrypt.hash()
+               ↓
+        Update User DB
+               ↓
+       Password Changed ✅
+```
+
+### OTP
+
+```text
+OTP expiry = 2 minutes
+```
+
+Reset JWT:
+
+```text
+10 minutes
+```
+
+---
+
+# 10. ⚡ Redis
+
+Redis ko humne **2 different purposes** ke liye use kiya hai.
+
+```text
+Redis
+ │
+ ├── Cache
+ │
+ └── Pub/Sub
+```
+
+---
+
+# 11. 🧠 Redis Cache
+
+### Definition
+
+**Caching is the process of storing frequently accessed data in a fast temporary storage so that future requests can be served faster.**
+
+Simple:
+
+Database se baar-baar same data lene ke bajaye Redis mein temporary copy rakh dete hain.
+
+---
+
+## Product Cache
+
+```text
+GET /api/products
+       ↓
+Product Service
+       ↓
+Redis mein products hai?
+    ↓          ↓
+   YES         NO
+    ↓           ↓
+Return       PostgreSQL
+              ↓
+           Redis mein save
+              ↓
+           Return data
+```
+
+Cache key:
+
+```text
+products
+```
+
+Expiry:
+
+```text
+60 seconds
+```
+
+---
+
+## Individual Product Cache
+
+```text
+GET /api/products/prod-001
+          ↓
+Redis
+          ↓
+product:prod-001
+```
+
+Agar Redis mein nahi:
+
+```text
+Redis miss
+   ↓
+PostgreSQL
+   ↓
+Redis
+   ↓
+Response
+```
+
+---
+
+# 12. 🗑️ Cache Invalidation
+
+Agar product change ho gaya to purana Redis data galat ho sakta hai.
+
+Isliye:
+
+```text
+CREATE PRODUCT
+     ↓
+DB update
+     ↓
+Delete "products" cache
+```
+
+Update:
+
+```text
+UPDATE PRODUCT
+     ↓
+DB update
+     ↓
+Delete product:id
+     ↓
+Delete products
+```
+
+Delete:
+
+```text
+DELETE PRODUCT
+     ↓
+DB delete
+     ↓
+Delete product:id
+     ↓
+Delete products
+```
+
+### Important concept
+
+**Cache invalidation = removing/updating stale cached data when the original data changes.**
+
+---
+
+# 13. 📢 Redis Pub/Sub
+
+### Definition
+
+**Publish/Subscribe is a messaging pattern where a publisher sends an event to a channel and subscribers interested in that channel receive the event.**
+
+Simple language:
+
+Ek service bolti hai:
+
+> "Order create ho gaya."
+
+Aur jis service ko is event mein interest hai, wo sun leti hai.
+
+---
+
+# 14. 📢 Pub/Sub Architecture
+
+```text
+                  ORDER SERVICE
+                       │
+                       │
+                       │ order.created
+                       ▼
+                ┌───────────────┐
+                │ Redis Pub/Sub │
+                └───────┬───────┘
+                        │
+              ┌─────────┴──────────┐
+              │                    │
+              ▼                    ▼
+      Product Subscriber      Email Subscriber
+              │                    │
+              ▼                    ▼
+        Reduce Stock          Send Email
+```
+
+Channel:
+
+```text
+order.created
+```
+
+---
+
+# 15. 🛒 Complete POST Order Flow
+
+Ye project ka one of the most important flows hai.
+
+```text
+Postman / React
+      │
+      │ POST /api/orders
+      ▼
+localhost:8080
+      │
+      ▼
+    NGINX
+      │
+      ▼
+Order Service :4002
+      │
+      ├──────────────► Product Service :4001
+      │                    │
+      │                    ▼
+      │               Check Product
+      │               Check Price
+      │               Check Stock
+      │
+      ▼
+Save Order
+      │
+      ▼
+Order PostgreSQL
+      │
+      ▼
+Publish "order.created"
+      │
+      ▼
+Redis Pub/Sub
+      │
+      ├───────────────────┐
+      │                   │
+      ▼                   ▼
+Product Service       Email Handler
+      │                   │
+      ▼                   ▼
+Reduce Stock          Send Email
+      │
+      ▼
+Product DB
+```
+
+---
+
+# 16. 🔄 HTTP vs Pub/Sub
+
+Ye difference yaad rakhna important hai.
+
+| Technology    | Meaning                     |
+| ------------- | --------------------------- |
+| HTTP/Axios    | Direct request/response     |
+| Redis Cache   | Fast temporary data         |
+| Redis Pub/Sub | Event/message communication |
+| PostgreSQL    | Permanent data              |
+
+### Example HTTP
+
+```text
+Order Service
+     │
+     │ GET product
+     ▼
+Product Service
+     │
+     ▼
+Response
+```
+
+Order Service ko answer chahiye.
+
+---
+
+### Example Pub/Sub
+
+```text
+Order Service
+     │
+     │ "Order created!"
+     ▼
+Redis
+     │
+     ├──► Product Service
+     │
+     └──► Email Handler
+```
+
+Yahan Order Service ko har subscriber ka direct response nahi chahiye.
+
+---
+
+# 17. 🔌 Ports — Sabse Important
+
+Project mein ports ko lekar confusion ho sakta hai.
+
+### Services
+
+```text
+Product Service = 4001
+Order Service   = 4002
+```
+
+Lekin client normally in ports ko use nahi karta.
+
+Local mein:
+
+```text
+Client
+  ↓
+localhost:8080
+  ↓
+Nginx
+  ↓
+4001 / 4002
+```
+
+---
+
+# 18. 🌐 Local Port Flow
+
+```text
+Postman / Browser / React
+          │
+          ▼
+localhost:8080
+          │
+          ▼
+      Nginx :80
+          │
+     ┌────┴────┐
+     │         │
+     ▼         ▼
+   :4001     :4002
+ Product      Order
+```
+
+### `8080:80` ka meaning
+
+```text
+8080 = Host machine port
+80   = Nginx container port
+```
+
+Docker Compose:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+Matlab:
+
+```text
+Windows localhost:8080
+          ↓
+Docker Nginx :80
+```
+
+---
+
+# 19. 🧠 4001 / 4002 Ka Actual Meaning
+
+```text
+4001 → Product Service container ke andar application
+4002 → Order Service container ke andar application
+```
+
+Ye ports service ko identify karne ke liye hain.
+
+Nginx:
+
+```text
+/api/products
+      ↓
+product-service:4001
+```
+
+```text
+/api/orders
+      ↓
+order-service:4002
+```
+
+---
+
+# 20. 🐳 Docker
+
+### Definition
+
+**Docker is a platform used to package an application with its dependencies and run it consistently inside containers.**
+
+Simple:
+
+Mera application + dependencies + required environment ko ek package jaisa bana deta hai.
+
+---
+
+# 21. 🖼️ Docker Image
+
+### Definition
+
+**An image is a packaged blueprint used to create containers.**
+
+Example:
+
+```text
+Dockerfile
+    ↓
+docker build
+    ↓
+Docker Image
+```
+
+---
+
+# 22. 📦 Docker Container
+
+### Definition
+
+**A container is a running instance of a Docker image.**
+
+```text
+Image
+  ↓
+docker run
+  ↓
+Container
+```
+
+Ek image se multiple containers bhi ban sakte hain.
+
+---
+
+# 23. 📝 Dockerfile
+
+### Definition
+
+**A Dockerfile contains instructions used to build a Docker image.**
+
+Product Service Dockerfile:
+
+```dockerfile
+FROM node:22
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN npx prisma generate
+
+EXPOSE 4001
+
+CMD ["npm", "start"]
+```
+
+### Iska flow
+
+```text
+FROM node:22
+      ↓
+Node environment
+
+WORKDIR /app
+      ↓
+Container ke andar working folder
+
+COPY package*.json ./
+      ↓
+Package files copy
+
+RUN npm install
+      ↓
+Dependencies install
+
+COPY . .
+      ↓
+Project code copy
+
+RUN npx prisma generate
+      ↓
+Prisma Client generate
+
+EXPOSE 4001
+      ↓
+Application ka container port
+
+CMD npm start
+      ↓
+Application start
+```
+
+---
+
+# 24. 📄 .dockerignore
+
+```text
+node_modules
+.env
+.git
+npm-debug.log
+```
+
+### Why?
+
+`node_modules`:
+
+```text
+Local wala copy nahi karna
+```
+
+Docker image ke andar:
+
+```text
+npm install
+```
+
+se dependencies dobara install hongi.
+
+`.env`:
+
+```text
+Secrets image mein nahi daalne.
+```
+
+---
+
+# 25. 🔐 Environment Variables
+
+### Definition
+
+**Environment variables store configuration and sensitive values outside the source code.**
+
+Example:
+
+```env
+DATABASE_URL="..."
+REDIS_URL="..."
+JWT_SECRET="..."
+EMAIL_USER="..."
+EMAIL_PASS="..."
+```
+
+GitHub mein `.env` nahi.
+
+Docker image mein `.env` nahi.
+
+Runtime par environment variables inject karte hain.
+
+---
+
+# 26. 🌐 Docker Network
+
+Docker Compose automatically services ko ek network mein connect karta hai.
+
+Isliye containers ek dusre ko service name se access kar sakte hain.
+
+Example:
+
+```text
+Order Service
+     │
+     │ HTTP
+     ▼
+http://product-service:4001
+```
+
+Yahan:
+
+```text
+product-service
+```
+
+container/service ka naam hai.
+
+---
+
+# 27. ❌ Container ke andar localhost
+
+Ye important mistake hai:
+
+```text
+http://localhost:4001
+```
+
+Order container se use karoge to iska matlab hoga:
+
+```text
+Order Service ka khud ka localhost
+```
+
+Product Service nahi.
+
+Correct:
+
+```text
+http://product-service:4001
+```
+
+---
+
+# 28. 🧩 Docker Compose
+
+### Definition
+
+**Docker Compose is a tool used to define and manage multiple containers as one application.**
+
+Humare project mein:
+
+```text
+docker-compose.yml
+        │
+        ├── Product Service
+        ├── Order Service
+        └── Nginx
+```
+
+---
+
+# 29. 🐳 Our Docker Compose Architecture
+
+```text
+                    Docker Compose
+                          │
+             ┌────────────┼────────────┐
+             │            │            │
+             ▼            ▼            ▼
+       Product Service Order Service  Nginx
+           :4001          :4002        :80
+             │            │             ▲
+             │            │             │
+             └────────────┴─────────────┘
+                       Docker Network
+```
+
+Local machine:
+
+```text
+localhost:8080
+      ↓
+Nginx container :80
+```
+
+Compose mapping:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+---
+
+# 30. 🌐 API Gateway
+
+### Definition
+
+**An API Gateway is a centralized entry point through which clients access backend services.**
+
+Humne API Gateway ka kaam Nginx se karwaya.
+
+Important:
+
+```text
+API Gateway = Role / Concept
+
+Nginx = Software
+```
+
+Nginx API Gateway ka role perform kar raha hai.
+
+---
+
+# 31. ⚙️ Nginx
+
+Nginx ka kaam:
+
+```text
+Client request
+      ↓
+Nginx
+      ↓
+URL dekho
+      ↓
+Correct Service ko request bhejo
+```
+
+### nginx.conf
+
+```nginx
+location /api/products {
+    proxy_pass http://product-service:4001;
+}
+
+location /api/orders {
+    proxy_pass http://order-service:4002;
+}
+
+location /api/auth {
+    proxy_pass http://order-service:4002;
+}
+```
+
+---
+
+# 32. 🚦 Nginx Routing
+
+Products:
+
+```text
+localhost:8080/api/products
+             ↓
+          Nginx :80
+             ↓
+product-service:4001
+```
+
+Orders:
+
+```text
+localhost:8080/api/orders
+             ↓
+          Nginx :80
+             ↓
+order-service:4002
+```
+
+Auth:
+
+```text
+localhost:8080/api/auth/login
+             ↓
+          Nginx :80
+             ↓
+order-service:4002
+```
+
+---
+
+# 33. 🧠 Client ko kya pata hai?
+
+Client ko internally ye pata hona zaroori nahi:
+
+```text
+4001
+4002
+product-service
+order-service
+```
+
+Client simply:
+
+```text
+localhost:8080
+```
+
+use karta hai.
+
+```text
+Client
+  │
+  │ Only knows
+  ▼
+localhost:8080
+  │
+  ▼
+Nginx
+  │
+  ├── /api/products → Product :4001
+  │
+  └── /api/orders   → Order :4002
+```
+
+---
+
+# 34. 🧪 Postman ka Game
+
+### GET Products
+
+```text
+GET
+http://localhost:8080/api/products
+```
+
+Flow:
+
+```text
+Postman
+  ↓
+8080
+  ↓
+Nginx
+  ↓
+Product :4001
+  ↓
+Redis / DB
+  ↓
+Response
+  ↓
+Postman
+```
+
+---
+
+### POST Product
+
+```text
+POST
+http://localhost:8080/api/products
+```
+
+Flow:
+
+```text
+Postman
+  ↓
+8080
+  ↓
+Nginx
+  ↓
+Product :4001
+  ↓
+PostgreSQL
+  ↓
+Delete products cache
+  ↓
+Response
+```
+
+---
+
+### POST Order
+
+```text
+POST
+http://localhost:8080/api/orders
+```
+
+Flow:
+
+```text
+Postman
+  ↓
+8080
+  ↓
+Nginx
+  ↓
+Order :4002
+  ↓
+Product Service :4001
+  ↓
+Check Product
+  ↓
+Order DB
+  ↓
+order.created
+  ↓
+Redis Pub/Sub
+  ├── Product → Reduce Stock
+  └── Email → Send Confirmation
+```
+
+---
+
+# 35. 📡 API Gateway ke baad Ports
+
+### Local
+
+```text
+Client
+  ↓
+localhost:8080
+  ↓
+Nginx :80
+  ↓
+4001 / 4002
+```
+
+### EC2
+
+```text
+Internet
+  ↓
+EC2 Public IP :80
+  ↓
+Nginx :80
+  ↓
+4001 / 4002
+```
+
+### Remember
+
+```text
+LOCAL:
+localhost:8080 → Nginx → 4001 / 4002
+
+EC2:
+Public-IP:80 → Nginx → 4001 / 4002
+```
+
+---
+
+# 36. 🐳 Docker Commands I Learned
+
+## Build Image
+
+```bash
+docker build -t product-service .
+```
+
+Meaning:
+
+```text
+Dockerfile
+   ↓
+Build
+   ↓
+product-service image
+```
+
+---
+
+## See Images
+
+```bash
+docker images
+```
+
+---
+
+## Run Container
+
+```bash
+docker run --env-file .env -p 4001:4001 product-service
+```
+
+### Port mapping
+
+```text
+-p HOST:CONTAINER
+```
+
+Example:
+
+```text
+-p 4001:4001
+```
+
+---
+
+## See Running Containers
+
+```bash
+docker ps
+```
+
+---
+
+## See All Containers
+
+```bash
+docker ps -a
+```
+
+---
+
+## Stop Container
+
+```bash
+docker stop <container_id>
+```
+
+---
+
+## Start Container
+
+```bash
+docker start <container_name>
+```
+
+---
+
+## Remove Container
+
+```bash
+docker rm <container_name>
+```
+
+---
+
+## Remove Unused Containers
+
+```bash
+docker container prune
+```
+
+---
+
+## Clean Unused Docker Resources
+
+```bash
+docker system prune -a
+```
+
+Careful: ye unused Docker resources remove kar sakta hai.
+
+---
+
+# 37. 🐳 Docker Compose Commands
+
+Project root:
+
+```text
+ecommerce-microservices/
+```
+
+### Start
+
+```bash
+docker-compose up
+```
+
+### Background mein start
+
+```bash
+docker-compose up -d
+```
+
+### Build + Start
+
+```bash
+docker-compose up --build -d
+```
+
+### Stop/remove Compose resources
+
+```bash
+docker-compose down
+```
+
+### Check containers
+
+```bash
+docker-compose ps
+```
+
+### Logs
+
+```bash
+docker-compose logs
+```
+
+Specific service:
+
+```bash
+docker-compose logs product-service
+```
+
+---
+
+# 38. 📁 Final Project Structure
+
+```text
+ecommerce-microservices/
+│
+├── product-service/
+│   ├── prisma/
+│   │   └── schema.prisma
+│   │
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── db.js
+│   │   │   └── redis.js
+│   │   │
+│   │   ├── middleware/
+│   │   │   └── error.middleware.js
+│   │   │
+│   │   ├── modules/
+│   │   │   └── product/
+│   │   │       ├── product.controller.js
+│   │   │       ├── product.routes.js
+│   │   │       └── product.service.js
+│   │   │
+│   │   ├── events/
+│   │   │   └── order.events.js
+│   │   │
+│   │   ├── app.js
+│   │   └── server.js
+│   │
+│   ├── .env
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── package.json
+│   └── package-lock.json
+│
+├── order-service/
+│   ├── prisma/
+│   │   └── schema.prisma
+│   │
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── db.js
+│   │   │   ├── redis.js
+│   │   │   └── mail.js
+│   │   │
+│   │   ├── middleware/
+│   │   │   ├── auth.middleware.js
+│   │   │   ├── authorize.middleware.js
+│   │   │   └── error.middleware.js
+│   │   │
+│   │   ├── modules/
+│   │   │   ├── auth/
+│   │   │   │   ├── auth.controller.js
+│   │   │   │   ├── auth.service.js
+│   │   │   │   └── auth.routes.js
+│   │   │   │
+│   │   │   └── order/
+│   │   │       ├── order.controller.js
+│   │   │       ├── order.service.js
+│   │   │       └── order.routes.js
+│   │   │
+│   │   ├── events/
+│   │   │   ├── order.events.js
+│   │   │   └── order.email.js
+│   │   │
+│   │   ├── app.js
+│   │   └── server.js
+│   │
+│   ├── .env
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── package.json
+│   └── package-lock.json
+│
+├── api-gateway/
+│   ├── nginx.conf
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── context/
+│   │   └── App.jsx
+│   ├── package.json
+│   └── vite.config.js
+│
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+```
+
+---
+
+# 39. 🧱 server.js vs app.js
+
+Humne jaan-bujhkar giant `index.js` nahi banaya.
+
+### app.js
+
+Application setup:
+
+```text
+Express
+Middleware
+Routes
+Error middleware
+```
+
+### server.js
+
+Server start:
+
+```text
+Database
+Redis
+Events
+app.listen()
+```
+
+Simple:
+
+```text
+app.js
+   ↓
+Application ready
+
+server.js
+   ↓
+Application start
+```
+
+---
+
+# 40. 🧠 Controller vs Service vs Routes
+
+```text
+Request
+  ↓
+Routes
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Database / Redis / External Service
+```
+
+### Routes
+
+Decide karta hai:
+
+```text
+Kaunsi URL?
+Kaunsa HTTP method?
+Kaunsa controller?
+```
+
+### Controller
+
+Request/response handle karta hai.
+
+### Service
+
+Actual business logic rakhta hai.
+
+Isliye code manageable rehta hai.
+
+---
+
+# 41. 🔄 Complete Backend Request Flow
+
+```text
+CLIENT
+  │
+  ▼
+NGINX / API GATEWAY
+  │
+  ▼
+ROUTE
+  │
+  ▼
+CONTROLLER
+  │
+  ▼
+SERVICE
+  │
+  ├──► PostgreSQL
+  │
+  ├──► Redis
+  │
+  └──► Another Service
+  │
+  ▼
+CONTROLLER
+  │
+  ▼
+RESPONSE
+  │
+  ▼
+CLIENT
+```
+
+---
+
+# 42. ☁️ AWS EC2
+
+### Definition
+
+**Amazon EC2 provides virtual servers in the cloud where applications can be deployed and run.**
+
+Humne EC2 ko practice deployment ke liye use kiya.
+
+Server:
+
+```text
+Ubuntu
+   ↓
+Docker
+   ↓
+Docker Compose
+   ↓
+Our Microservices
+```
+
+---
+
+# 43. 🔐 SSH
+
+### Definition
+
+**SSH (Secure Shell) is a protocol used to securely connect to and manage a remote server.**
+
+Flow:
+
+```text
+Windows PC
+    │
+    │ SSH
+    ▼
+AWS EC2 Ubuntu
+```
+
+Basic command:
+
+```bash
+ssh -i ecommerce-server-key.pem ubuntu@PUBLIC_IP
+```
+
+---
+
+# 44. 🐧 EC2 Basic Commands
+
+```bash
+sudo apt update
+```
+
+Packages ki information update karta hai.
+
+---
+
+```bash
+sudo apt install docker.io -y
+```
+
+Docker install.
+
+---
+
+```bash
+docker --version
+```
+
+Docker check.
+
+---
+
+```bash
+sudo systemctl status docker
+```
+
+Docker service check.
+
+---
+
+```bash
+git --version
+```
+
+Git check.
+
+---
+
+```bash
+git clone <github-repository>
+```
+
+GitHub se project server par lana.
+
+---
+
+# 45. ☁️ EC2 Deployment Flow
+
+```text
+AWS EC2
+   ↓
+Ubuntu
+   ↓
+SSH Login
+   ↓
+Install Docker
+   ↓
+Install/Check Docker Compose
+   ↓
+Git Clone
+   ↓
+Create .env files
+   ↓
+docker-compose up --build -d
+   ↓
+Containers Start
+   ↓
+Nginx
+   ↓
+Public IP
+   ↓
+Postman / Browser
+   ↓
+Backend Test
+```
+
+---
+
+# 46. 🔐 EC2 Environment Variables
+
+GitHub par `.env` nahi rakha.
+
+EC2 par manually:
+
+```text
+product-service/.env
+order-service/.env
+```
+
+Docker Compose:
+
+```yaml
+env_file:
+  - ./product-service/.env
+```
+
+Matlab:
+
+```text
+.env
+ ↓
+Docker Compose
+ ↓
+Container Environment
+```
+
+---
+
+# 47. 💾 EC2 Disk Problem Jo Humne Solve Kiya
+
+`t3.micro` par Docker build ke time memory/disk issue aaya.
+
+First:
+
+```text
+Killed
+code 137
+```
+
+Later:
+
+```text
+ENOSPC
+no space left on device
+```
+
+Check:
+
+```bash
+df -h
+```
+
+Docker:
+
+```bash
+docker system df
+```
+
+Root disk ko:
+
+```text
+~8 GB
+ ↓
+20 GB
+```
+
+kiya.
+
+Then partition/filesystem resize kiya:
+
+```bash
+sudo growpart /dev/nvme0n1 1
+```
+
+```bash
+sudo resize2fs /dev/nvme0n1p1
+```
+
+Finally:
+
+```text
+~19 GB usable
+```
+
+Aur Docker build successful hua.
+
+### Lesson
+
+EC2 instance ki RAM aur disk dono deployment mein important hain.
+
+---
+
+# 48. 🐳 EC2 par Docker Permission Problem
+
+Error:
+
+```text
+PermissionError: [Errno 13] Permission denied
+```
+
+Docker group add:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Phir:
+
+```bash
+exit
+```
+
+SSH dobara login.
+
+Uske baad Docker without sudo use kar sakte hain.
+
+---
+
+# 49. 🌐 EC2 Nginx Flow
+
+EC2 par:
+
+```text
+Internet
+   │
+   ▼
+EC2 Public IP :80
+   │
+   ▼
+Nginx Container :80
+   │
+   ├──► product-service:4001
+   │
+   └──► order-service:4002
+```
+
+Local mein:
+
+```text
+localhost:8080
+```
+
+EC2 mein:
+
+```text
+PUBLIC_IP:80
+```
+
+---
+
+# 50. 🧪 Complete Local Testing
+
+## Product
+
+```text
+GET
+http://localhost:8080/api/products
+```
+
+## Product by ID
+
+```text
+GET
+http://localhost:8080/api/products/prod-001
+```
+
+## Create Product
+
+```text
+POST
+http://localhost:8080/api/products
+```
+
+## Login
+
+```text
+POST
+http://localhost:8080/api/auth/login
+```
+
+## Create Order
+
+```text
+POST
+http://localhost:8080/api/orders
+```
+
+---
+
+# 51. 🧠 One Big Flow — Entire Project
+
+```text
+                         👤 CUSTOMER
+                              │
+                              ▼
+                       ⚛️ REACT FRONTEND
+                              │
+                              ▼
+                    🌐 NGINX API GATEWAY
+                         localhost:8080
+                              │
+               ┌──────────────┴──────────────┐
+               │                             │
+               ▼                             ▼
+       📦 PRODUCT SERVICE              🛒 ORDER SERVICE
+             :4001                          :4002
+               │                             │
+        ┌──────┴──────┐              ┌──────┴──────┐
+        │             │              │             │
+        ▼             ▼              ▼             ▼
+    Neon DB        Redis          Neon DB        Redis
+        │                            │
+        │                            │
+        │                            ▼
+        │                       order.created
+        │                            │
+        │                         Redis
+        │                            │
+        │                   ┌────────┴────────┐
+        │                   │                 │
+        ▼                   ▼                 ▼
+    Products          Reduce Stock       Send Email
+```
+
+---
+
+# 52. 🔥 POST Order ko Ek Baar Aur
+
+```text
+POST /api/orders
+        │
+        ▼
+localhost:8080
+        │
+        ▼
+NGINX
+        │
+        ▼
+Order Service :4002
+        │
+        ▼
+Product Service :4001
+        │
+        ▼
+Product Check
+        │
+        ├── Price
+        └── Stock
+        │
+        ▼
+Order DB
+        │
+        ▼
+order.created
+        │
+        ▼
+Redis Pub/Sub
+        │
+        ├──────────────► Product Service
+        │                    ↓
+        │               Reduce Stock
+        │
+        └──────────────► Email Handler
+                             ↓
+                         Confirmation
+```
+
+---
+
+# 53. 🧠 Technologies Ka Simple Cheat Sheet
+
+```text
+Node.js
+→ JavaScript backend run karta hai
+
+Express
+→ APIs/server banane ke liye
+
+PostgreSQL
+→ Permanent data
+
+Neon
+→ Cloud PostgreSQL
+
+Prisma
+→ Database ke saath easy interaction
+
+Redis
+→ Fast cache + Pub/Sub
+
+Upstash
+→ Cloud Redis
+
+Axios
+→ Service-to-service HTTP request
+
+JWT
+→ Authentication
+
+bcrypt
+→ Password hashing
+
+Nodemailer
+→ Email send
+
+Nginx
+→ API Gateway / reverse proxy
+
+Docker
+→ Application package/run
+
+Dockerfile
+→ Image ka blueprint/instructions
+
+Docker Image
+→ Packaged application blueprint
+
+Container
+→ Running image
+
+Docker Compose
+→ Multiple containers manage/connect
+
+Docker Network
+→ Containers ko communicate karata hai
+
+.env
+→ Runtime configuration/secrets
+
+AWS EC2
+→ Cloud server
+
+Ubuntu
+→ Server operating system
+
+SSH
+→ Secure remote server connection
+```
+
+---
+
+# 54. 🔌 Ports Cheat Sheet
+
+```text
+4001
+↓
+Product Service
+
+4002
+↓
+Order Service
+
+80
+↓
+Nginx container port
+
+8080
+↓
+Local host port
+```
+
+### Local
+
+```text
+localhost:8080
+       ↓
+    Nginx :80
+       ↓
+  4001 / 4002
+```
+
+### EC2
+
+```text
+PUBLIC_IP:80
+       ↓
+    Nginx :80
+       ↓
+  4001 / 4002
+```
+
+---
+
+# 55. 🧠 Most Important Things To Remember
+
+### 1.
+
+```text
+4001 = Product
+4002 = Order
+```
+
+### 2.
+
+```text
+8080 = Local Nginx entry point
+```
+
+### 3.
+
+```text
+Nginx decides where request goes.
+```
+
+### 4.
+
+```text
+Docker service name is used for
+container-to-container communication.
+```
+
+Example:
+
+```text
+http://product-service:4001
+```
+
+### 5.
+
+```text
+Redis Cache = data fast access ke liye
+```
+
+### 6.
+
+```text
+Redis Pub/Sub = event/message communication
+```
+
+### 7.
+
+```text
+HTTP/Axios = direct communication
+```
+
+### 8.
+
+```text
+PostgreSQL = permanent data
+```
+
+### 9.
+
+```text
+Dockerfile = image kaise banegi
+```
+
+### 10.
+
+```text
+docker-compose.yml = containers kaise run/connect honge
+```
+
+### 11.
+
+```text
+API Gateway = concept/role
+Nginx = software
+```
+
+### 12.
+
+```text
+Client → Nginx → Service
+```
+
+---
+
+# 56. 🏁 Project Progress
+
+## Backend
+
+```text
+✅ Product Service
+✅ Product APIs
+✅ Order Service
+✅ Order APIs
+✅ Authentication
+✅ JWT
+✅ bcrypt
+✅ Role Based Access
+✅ Forgot Password
+✅ OTP
+✅ Email
+✅ PostgreSQL
+✅ Prisma
+✅ Neon
+✅ Redis Cache
+✅ Redis Pub/Sub
+✅ Service-to-Service Communication
+✅ Stock Reduction
+✅ Order Confirmation Email
+```
+
+## Infrastructure
+
+```text
+✅ Docker
+✅ Dockerfile
+✅ Docker Network
+✅ Docker Compose
+✅ Nginx
+✅ API Gateway
+✅ Local Gateway :8080
+✅ AWS EC2
+✅ Ubuntu
+✅ SSH
+✅ Docker on EC2
+✅ GitHub → EC2
+✅ EC2 Environment Variables
+✅ Public API Testing
+```
+
+---
+
+# 57. 🚀 Project Roadmap
+
+Backend complete ho chuka hai.
+
+```text
+                    BACKEND
+                       │
+                       ▼
+                Product Service
+                       ↓
+                 Order Service
+                       ↓
+                  Redis Cache
+                       ↓
+                  Redis Pub/Sub
+                       ↓
+                Stock + Email
+                       ↓
+                    Docker
+                       ↓
+                 Docker Compose
+                       ↓
+                    Nginx
+                       ↓
+                 API Gateway
+                       ↓
+                 AWS EC2 Test
+                       ↓
+                Backend Complete
+                       │
+                       ▼
+                ⚛️ REACT FRONTEND
+                       │
+                       ▼
+                API Integration
+                       │
+                       ▼
+                 Complete Testing
+                       │
+                       ▼
+              Production Deployment
+                       │
+                       ▼
+                 🚀 FINAL PROJECT
+```
+
+---
+
+# 58. 🧹 EC2 Cleanup Plan
+
+EC2 deployment humne mainly **deployment practice** ke liye kiya.
+
+Jab current practice complete ho:
+
+```text
+EC2 Instance
+     ↓
+Delete
+```
+
+Lekin sirf instance delete karna enough nahi hota.
+
+Check:
+
+```text
+EC2 instance
+EBS volume
+Elastic IP / public IP related resources
+Other AWS resources
+```
+
+Unused resources ko bhi check karna hai.
+
+### Important
+
+EC2 delete hone ke baad uska public IP normally retain nahi hota.
+
+Local setup alag hai.
+
+---
+
+# 59. 💻 EC2 Delete Hone Ke Baad Local Setup
+
+Local development:
+
+```text
+React
+  ↓
+localhost:8080
+  ↓
+Nginx
+  ↓
+Product :4001
+Order :4002
+```
+
+Isliye EC2 delete hone ke baad bhi local backend use kar sakte hain.
+
+Bas local `docker-compose.yml` mein:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+hona chahiye.
+
+EC2 ke liye:
+
+```yaml
+ports:
+  - "80:80"
+```
+
+use kiya tha.
+
+---
+
+# 60. 🧠 Final Mental Model
+
+Agar mujhe pura project 30 seconds mein yaad karna ho:
+
+```text
+                    CLIENT
+                      │
+                      ▼
+                 NGINX :8080
+                  API GATEWAY
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+        PRODUCT :4001      ORDER :4002
+             │                 │
+             ▼                 ▼
+         Product DB         Order DB
+             │                 │
+             ▼                 ▼
+           Redis             Redis
+                               │
+                               ▼
+                        order.created
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+              Reduce Stock            Send Email
+```
+
+Aur technology ka role:
+
+```text
+PostgreSQL → Permanent Data
+Redis      → Cache + Events
+Axios      → Direct Service Communication
+Nginx      → Gateway
+Docker     → Package/Run Services
+Compose    → Manage Services Together
+EC2        → Cloud Server
+React      → Frontend
+```
+
+### ⭐ One-line project flow
+
+```text
+React → Nginx → Microservices → PostgreSQL/Redis
+                         ↓
+                    Redis Events
+                         ↓
+                  Stock + Email
+```
+
+**Ye mera E-Commerce Microservices project ka main map hai.**
+Agar mujhe kabhi confusion ho ki "ye cheez kahan use hui thi?", pehle isi handbook ko dekhna hai.
