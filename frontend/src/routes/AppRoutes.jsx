@@ -6,6 +6,7 @@ import Register from "../pages/Register/Register.jsx"
 import Cart from "../pages/Cart/Cart.jsx"
 import Feedback from "../pages/Feedback/Feedback.jsx"
 import Architecture from "../pages/Architecture/Architecture .jsx"
+import ProductDetails from "../pages/ProductDetails/ProductDetails"
 function AppRoutes() {
     return (
         <Routes>
@@ -41,7 +42,10 @@ function AppRoutes() {
                 path="/cart"
                 element={<Cart />}
             />
-
+            <Route
+                path="/products/:id"
+                element={<ProductDetails />}
+            />
         </Routes>
     )
 }

@@ -1,4 +1,4 @@
-
+import { Link } from "react-router-dom"
 function ProductCard({ product }) {
     const isInStock = product.stock > 0
 
@@ -18,8 +18,8 @@ function ProductCard({ product }) {
                 <div className="absolute left-3 top-3">
                     <span
                         className={`rounded - full px - 3 py - 1 text - xs font - medium ${isInStock
-                                ? "bg-white text-green-600"
-                                : "bg-black text-white"
+                            ? "bg-white text-green-600"
+                            : "bg-black text-white"
                             } `}
                     >
                         {isInStock ? "In Stock" : "Out of Stock"}
@@ -48,12 +48,12 @@ function ProductCard({ product }) {
                 </div>
 
                 {/* Action */}
-                <button
-                    disabled={!isInStock}
-                    className="mt-5 w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                <Link
+                    to={`/products/${product.id}`}
+                    className="mt-5 block w-full rounded-xl bg-black px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-gray-800"
                 >
                     View Product
-                </button>
+                </Link>
 
             </div>
 

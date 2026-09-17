@@ -1,8 +1,13 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-
+import { useCart } from "../../context/CartContext"
 function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const { cartItems } = useCart()
+    const cartCount = cartItems.reduce(
+        (total, item) => total + item.quantity,
+        0
+    )
 
     return (
         <nav className="border-b border-gray-200 bg-white">
@@ -69,7 +74,7 @@ function Navbar() {
                         to="/cart"
                         className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-gray-800"
                     >
-                        Cart
+                        Cart {cartCount > 0 && `(${cartCount})`}
                     </Link>
 
                 </div>
@@ -130,11 +135,8 @@ function Navbar() {
                             Register
                         </Link>
 
-                        <Link
-                            to="/cart"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Cart
+                        <Link to="/cart" onClick={() => setIsMenuOpen(false)}>
+                            Cart {cartCount > 0 && `(${cartCount})`}
                         </Link>
 
                     </div>
