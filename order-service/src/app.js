@@ -1,10 +1,18 @@
+import cors from "cors";
 import express from 'express';
 import cookieParser from 'cookie-parser'; // 1. Added cookie-parser import
 import errorMiddleware from './middleware/error.middleware.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import orderRoutes from "./modules/order/order.routes.js";
-const app = express();
 
+
+const app = express();
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    })
+);
 app.use(express.json());
 app.use(cookieParser()); // 2. Added cookie-parser middleware
 

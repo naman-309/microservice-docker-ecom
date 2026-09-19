@@ -70,6 +70,8 @@ const getProfile = async (req, res, next) => {
     try {
         res.status(200).json({
             message: "Profile fetched successfully",
+            name: req.user.name,
+            email: req.user.email,
             user: req.user,
         });
     } catch (error) {
