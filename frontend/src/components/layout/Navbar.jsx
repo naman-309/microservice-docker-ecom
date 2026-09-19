@@ -1,13 +1,20 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useCart } from "../../context/CartContext"
+import { useAuth } from "../../context/AuthContext"
+
 function Navbar() {
+
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+
     const { cartItems } = useCart()
+
     const cartCount = cartItems.reduce(
         (total, item) => total + item.quantity,
         0
     )
+
+    const { user, logout } = useAuth()
 
     return (
         <nav className="border-b border-gray-200 bg-white">
@@ -44,6 +51,7 @@ function Navbar() {
                     >
                         Feedback
                     </Link>
+
                     <Link
                         to="/architecture"
                         className="text-sm text-gray-700 hover:text-black"
@@ -56,19 +64,39 @@ function Navbar() {
                 {/* Desktop Right Side */}
                 <div className="hidden items-center gap-3 md:flex">
 
-                    <Link
-                        to="/login"
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
-                    >
-                        Login
-                    </Link>
+                    {user ? (
+                        <>
+                            <Link
+                                to="/profile"
+                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            >
+                                Profile
+                            </Link>
 
-                    <Link
-                        to="/register"
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
-                    >
-                        Register
-                    </Link>
+                            <button
+                                onClick={logout}
+                                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                            >
+                                Logout
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link
+                                to="/login"
+                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            >
+                                Login
+                            </Link>
+
+                            <Link
+                                to="/register"
+                                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                            >
+                                Register
+                            </Link>
+                        </>
+                    )}
 
                     <Link
                         to="/cart"
@@ -115,27 +143,55 @@ function Navbar() {
                         >
                             Feedback
                         </Link>
+
                         <Link
                             to="/architecture"
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Architecture
                         </Link>
-                        <Link
-                            to="/login"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Login
-                        </Link>
+
+                        {user ? (
+                            <>
+                                <Link
+                                    to="/profile"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Profile
+                                </Link>
+
+                                <button
+                                    className="text-left"
+                                    onClick={() => {
+                                        logout()
+                                        setIsMenuOpen(false)
+                                    }}
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Login
+                                </Link>
+
+                                <Link
+                                    to="/register"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Register
+                                </Link>
+                            </>
+                        )}
 
                         <Link
-                            to="/register"
+                            to="/cart"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            Register
-                        </Link>
-
-                        <Link to="/cart" onClick={() => setIsMenuOpen(false)}>
                             Cart {cartCount > 0 && `(${cartCount})`}
                         </Link>
 

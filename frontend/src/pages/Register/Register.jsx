@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { registerUser } from "../../services/auth.service"
 
 function Register() {
 
@@ -7,16 +8,35 @@ function Register() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-
-    const handleSubmit = (event) => {
+    const [successMessage, setSuccessMessage] = useState("")
+    const [errorMessage, setErrorMessage] = useState("")
+    const handleSubmit = async (event) => {
         event.preventDefault()
 
-        console.log("Name:", name)
-        console.log("Email:", email)
-        console.log("Password:", password)
-        console.log("Confirm Password:", confirmPassword)
-    }
+        setSuccessMessage("")
+        setErrorMessage("")
 
+        const userData = {
+            name,
+            email,
+            password,
+        }
+
+        try {
+            const data = await registerUser(userData)
+
+            console.log("Register successful:", data)
+
+            setSuccessMessage("Account created successfully!")
+        } catch (error) {
+            console.error("Register failed:", error)
+
+            setErrorMessage(
+                error.response?.data?.message ||
+                "Registration failed. Please try again."
+            )
+        }
+    }
     return (
         <main className="min-h-screen px-4 py-16">
 
@@ -58,6 +78,17 @@ function Register() {
                         >
                             Name
                         </label>
+                        {successMessage && (
+                            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                                {successMessage}
+                            </div>
+                        )}
+
+                        {errorMessage && (
+                            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                {errorMessage}
+                            </div>
+                        )}
 
                         <input
                             id="name"

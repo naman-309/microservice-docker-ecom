@@ -7,6 +7,7 @@ import Cart from "../pages/Cart/Cart.jsx"
 import Feedback from "../pages/Feedback/Feedback.jsx"
 import Architecture from "../pages/Architecture/Architecture .jsx"
 import ProductDetails from "../pages/ProductDetails/ProductDetails"
+import Profile from "../pages/Profile/Profile"
 function AppRoutes() {
     return (
         <Routes>
@@ -46,6 +47,7 @@ function AppRoutes() {
                 path="/products/:id"
                 element={<ProductDetails />}
             />
+            <Route path="/profile" element={<Profile />} />
         </Routes>
     )
 }
