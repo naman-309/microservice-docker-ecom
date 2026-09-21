@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../../../context/AuthContext"
 import { getAllOrders } from "../../../services/order.service"
+import { getAllProducts } from "../../../services/product.service"
 import { Link } from "react-router-dom"
+
 function Dashboard() {
 
     const { user } = useAuth()
 
     const [ordersCount, setOrdersCount] = useState(0)
+    const [productsCount, setProductsCount] = useState(0)
+
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -15,18 +19,23 @@ function Dashboard() {
             return
         }
 
-        const loadOrdersCount = async () => {
+        const loadDashboardData = async () => {
 
             try {
 
-                const data = await getAllOrders()
+                const [ordersData, productsData] = await Promise.all([
+                    getAllOrders(),
+                    getAllProducts(),
+                ])
 
-                setOrdersCount(data.orders.length)
+                setOrdersCount(ordersData.orders.length)
+
+                setProductsCount(productsData.data.length)
 
             } catch (error) {
 
                 console.error(
-                    "Failed to fetch orders count:",
+                    "Failed to fetch dashboard data:",
                     error
                 )
 
@@ -37,7 +46,7 @@ function Dashboard() {
             }
         }
 
-        loadOrdersCount()
+        loadDashboardData()
 
     }, [user])
 
@@ -123,10 +132,12 @@ function Dashboard() {
                 {/* Stats */}
                 <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
+                    {/* Orders */}
                     <Link
                         to="/admin/orders"
                         className="block rounded-2xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md"
                     >
+
                         <p className="font-mono text-xs text-gray-400">
                             ORDERS
                         </p>
@@ -138,24 +149,28 @@ function Dashboard() {
                         <p className="mt-2 text-sm text-gray-500">
                             View and manage orders →
                         </p>
+
                     </Link>
 
                     {/* Products */}
-                    <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                    <Link
+                        to="/admin/products"
+                        className="block rounded-2xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:border-gray-300 hover:shadow-md"
+                    >
 
                         <p className="font-mono text-xs text-gray-400">
                             PRODUCTS
                         </p>
 
                         <p className="mt-3 text-3xl font-bold text-gray-900">
-                            —
+                            {loading ? "..." : productsCount}
                         </p>
 
                         <p className="mt-2 text-sm text-gray-500">
-                            Product management
+                            View and manage products →
                         </p>
 
-                    </div>
+                    </Link>
 
                     {/* Users */}
                     <div className="rounded-2xl border border-gray-200 bg-white p-6">
