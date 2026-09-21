@@ -1,8 +1,9 @@
+import { useState } from "react"
 
 import { useCart } from "../../context/CartContext"
+import { createOrder } from "../../services/order.service"
 
 function Cart() {
-
     const {
         cartItems,
         removeFromCart,
@@ -10,6 +11,9 @@ function Cart() {
         decreaseQuantity,
     } = useCart()
 
+    const [placingOrder, setPlacingOrder] = useState(false)
+    const [errorMessage, setErrorMessage] = useState("")
+    const [successMessage, setSuccessMessage] = useState("")
 
     // Calculate total price
     const totalPrice = cartItems.reduce(
@@ -18,6 +22,49 @@ function Cart() {
         0
     )
 
+    // Place Order
+    const handlePlaceOrder = async () => {
+        if (cartItems.length === 0) {
+            return
+        }
+
+        try {
+            setPlacingOrder(true)
+            setErrorMessage("")
+            setSuccessMessage("")
+
+            // Convert cart data into backend format
+            const orderData = {
+                items: cartItems.map((item) => ({
+                    productId: item.product.id,
+                    quantity: item.quantity,
+                })),
+            }
+
+            console.log("Creating order:", orderData)
+
+            const data = await createOrder(orderData)
+
+            console.log("Order created:", data)
+
+            setSuccessMessage(
+                "Order placed successfully. Confirmation email will be sent shortly."
+            )
+
+        } catch (error) {
+            console.error(
+                "Failed to create order:",
+                error
+            )
+
+            setErrorMessage(
+                error.response?.data?.message ||
+                "Failed to place order. Please try again."
+            )
+        } finally {
+            setPlacingOrder(false)
+        }
+    }
 
     return (
         <main className="min-h-screen px-4 py-16">
@@ -34,6 +81,25 @@ function Cart() {
                     Your Cart
                 </h1>
 
+                {/* Success Message */}
+
+                {successMessage && (
+                    <div className="mt-8 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                        <p className="text-sm text-green-700">
+                            {successMessage}
+                        </p>
+                    </div>
+                )}
+
+                {/* Error Message */}
+
+                {errorMessage && (
+                    <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                        <p className="text-sm text-red-600">
+                            {errorMessage}
+                        </p>
+                    </div>
+                )}
 
                 {/* Empty Cart */}
 
@@ -77,7 +143,6 @@ function Cart() {
                                             className="h-28 w-full rounded-xl object-cover sm:h-24 sm:w-24"
                                         />
 
-
                                         {/* Product Information */}
 
                                         <div className="flex-1">
@@ -90,16 +155,17 @@ function Cart() {
                                                 ₹{product.price.toLocaleString("en-IN")}
                                             </p>
 
-
                                             {/* Quantity Controls */}
 
                                             <div className="mt-4 flex items-center gap-3">
 
                                                 <button
+                                                    type="button"
                                                     onClick={() =>
                                                         decreaseQuantity(product.id)
                                                     }
-                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-100"
+                                                    disabled={placingOrder}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     −
                                                 </button>
@@ -109,30 +175,32 @@ function Cart() {
                                                 </span>
 
                                                 <button
+                                                    type="button"
                                                     onClick={() =>
                                                         increaseQuantity(product.id)
                                                     }
-                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-100"
+                                                    disabled={placingOrder}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     +
                                                 </button>
 
                                             </div>
 
-
                                             {/* Remove */}
 
                                             <button
+                                                type="button"
                                                 onClick={() =>
                                                     removeFromCart(product.id)
                                                 }
-                                                className="mt-3 text-sm font-medium text-red-500 transition hover:text-red-700"
+                                                disabled={placingOrder}
+                                                className="mt-3 text-sm font-medium text-red-500 transition hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 Remove
                                             </button>
 
                                         </div>
-
 
                                         {/* Item Total */}
 
@@ -155,7 +223,6 @@ function Cart() {
                             })}
 
                         </div>
-
 
                         {/* Cart Summary */}
 
@@ -194,9 +261,15 @@ function Cart() {
                             </div>
 
                             <button
-                                className="mt-6 w-full rounded-xl bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+                                type="button"
+                                onClick={handlePlaceOrder}
+                                disabled={placingOrder}
+                                className="mt-6 w-full rounded-xl bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Proceed to Checkout
+                                {placingOrder
+                                    ? "Placing Order..."
+                                    : "Proceed to Checkout"
+                                }
                             </button>
 
                         </div>
@@ -212,4 +285,3 @@ function Cart() {
 }
 
 export default Cart
-
