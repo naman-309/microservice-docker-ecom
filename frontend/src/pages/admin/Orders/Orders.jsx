@@ -1,51 +1,49 @@
 import { useEffect, useState } from "react"
+
 import {
     getAllOrders,
     updateOrderStatus,
+    deleteOrder,
 } from "../../../services/order.service"
 
 function Orders() {
-
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
 
     const [updatingOrderId, setUpdatingOrderId] = useState(null)
+    const [deletingOrderId, setDeletingOrderId] = useState(null)
 
     useEffect(() => {
-
         const loadOrders = async () => {
-
             try {
+                setLoading(true)
+                setErrorMessage("")
 
                 const data = await getAllOrders()
 
                 console.log("Admin orders:", data.orders)
 
                 setOrders(data.orders)
-
             } catch (error) {
-
-                console.error("Failed to fetch orders:", error)
+                console.error(
+                    "Failed to fetch orders:",
+                    error
+                )
 
                 setErrorMessage(
                     error.response?.data?.message ||
                     "Failed to load orders."
                 )
-
             } finally {
-
                 setLoading(false)
-
             }
         }
 
         loadOrders()
-
     }, [])
 
     const handleStatusChange = (orderId, newStatus) => {
-
         setOrders((currentOrders) =>
             currentOrders.map((order) =>
                 order.id === orderId
@@ -59,10 +57,9 @@ function Orders() {
     }
 
     const handleUpdateStatus = async (orderId, status) => {
-
         try {
-
             setUpdatingOrderId(orderId)
+            setErrorMessage("")
 
             const data = await updateOrderStatus(
                 orderId,
@@ -73,9 +70,7 @@ function Orders() {
                 "Order status updated:",
                 data.order
             )
-
         } catch (error) {
-
             console.error(
                 "Failed to update order status:",
                 error
@@ -85,17 +80,48 @@ function Orders() {
                 error.response?.data?.message ||
                 "Failed to update order status."
             )
-
         } finally {
-
             setUpdatingOrderId(null)
+        }
+    }
 
+    const handleDeleteOrder = async (orderId) => {
+        const confirmed = window.confirm(
+            "Are you sure you want to delete this order?"
+        )
+
+        if (!confirmed) {
+            return
+        }
+
+        try {
+            setDeletingOrderId(orderId)
+            setErrorMessage("")
+
+            await deleteOrder(orderId)
+
+            setOrders((currentOrders) =>
+                currentOrders.filter(
+                    (order) => order.id !== orderId
+                )
+            )
+        } catch (error) {
+            console.error(
+                "Failed to delete order:",
+                error
+            )
+
+            setErrorMessage(
+                error.response?.data?.message ||
+                "Failed to delete order."
+            )
+        } finally {
+            setDeletingOrderId(null)
         }
     }
 
     return (
         <main className="min-h-screen px-4 py-16">
-
             <div className="mx-auto max-w-7xl">
 
                 {/* Page Header */}
@@ -132,17 +158,19 @@ function Orders() {
                 )}
 
                 {/* Empty State */}
-                {!loading && orders.length === 0 && !errorMessage && (
-                    <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-10 text-center">
-                        <p className="text-lg font-medium text-gray-900">
-                            No orders found
-                        </p>
+                {!loading &&
+                    orders.length === 0 &&
+                    !errorMessage && (
+                        <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-10 text-center">
+                            <p className="text-lg font-medium text-gray-900">
+                                No orders found
+                            </p>
 
-                        <p className="mt-2 text-sm text-gray-500">
-                            There are currently no customer orders.
-                        </p>
-                    </div>
-                )}
+                            <p className="mt-2 text-sm text-gray-500">
+                                There are currently no customer orders.
+                            </p>
+                        </div>
+                    )}
 
                 {/* Orders Table */}
                 {!loading && orders.length > 0 && (
@@ -150,7 +178,7 @@ function Orders() {
 
                         <div className="overflow-x-auto">
 
-                            <table className="w-full min-w-[900px]">
+                            <table className="w-full min-w-[1000px]">
 
                                 <thead className="border-b border-gray-200 bg-gray-50">
 
@@ -211,7 +239,10 @@ function Orders() {
                                                             event.target.value
                                                         )
                                                     }
-                                                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+                                                    disabled={
+                                                        deletingOrderId === order.id
+                                                    }
+                                                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400"
                                                 >
 
                                                     <option value="PENDING">
@@ -240,26 +271,54 @@ function Orders() {
 
                                             <td className="px-6 py-5">
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleUpdateStatus(
-                                                            order.id,
-                                                            order.status
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        updatingOrderId === order.id
-                                                    }
-                                                    className="rounded-lg bg-black px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
+                                                <div className="flex gap-2">
 
-                                                    {updatingOrderId === order.id
-                                                        ? "Updating..."
-                                                        : "Update"
-                                                    }
+                                                    {/* Update Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleUpdateStatus(
+                                                                order.id,
+                                                                order.status
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            updatingOrderId === order.id ||
+                                                            deletingOrderId === order.id
+                                                        }
+                                                        className="rounded-lg bg-black px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
 
-                                                </button>
+                                                        {updatingOrderId === order.id
+                                                            ? "Updating..."
+                                                            : "Update"
+                                                        }
+
+                                                    </button>
+
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDeleteOrder(
+                                                                order.id
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            updatingOrderId === order.id ||
+                                                            deletingOrderId === order.id
+                                                        }
+                                                        className="rounded-lg border border-red-300 px-4 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+
+                                                        {deletingOrderId === order.id
+                                                            ? "Deleting..."
+                                                            : "Delete"
+                                                        }
+
+                                                    </button>
+
+                                                </div>
 
                                             </td>
 
@@ -277,7 +336,6 @@ function Orders() {
                 )}
 
             </div>
-
         </main>
     )
 }
