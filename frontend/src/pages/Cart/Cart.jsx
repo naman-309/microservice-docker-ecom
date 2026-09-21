@@ -4,11 +4,13 @@ import { useCart } from "../../context/CartContext"
 import { createOrder } from "../../services/order.service"
 
 function Cart() {
+
     const {
         cartItems,
         removeFromCart,
         increaseQuantity,
         decreaseQuantity,
+        clearCart,
     } = useCart()
 
     const [placingOrder, setPlacingOrder] = useState(false)
@@ -33,7 +35,6 @@ function Cart() {
             setErrorMessage("")
             setSuccessMessage("")
 
-            // Convert cart data into backend format
             const orderData = {
                 items: cartItems.map((item) => ({
                     productId: item.product.id,
@@ -46,6 +47,10 @@ function Cart() {
             const data = await createOrder(orderData)
 
             console.log("Order created:", data)
+
+            // Order successfully created
+            // Now clear the local cart
+            clearCart()
 
             setSuccessMessage(
                 "Order placed successfully. Confirmation email will be sent shortly."
