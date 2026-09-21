@@ -58,7 +58,14 @@ function Navbar() {
                     >
                         Architecture
                     </Link>
-
+                    {user?.role === "admin" && (
+                        <Link
+                            to="/admin"
+                            className="text-sm font-medium text-gray-900 hover:text-gray-500"
+                        >
+                            Admin
+                        </Link>
+                    )}
                 </div>
 
                 {/* Desktop Right Side */}
@@ -150,7 +157,15 @@ function Navbar() {
                         >
                             Architecture
                         </Link>
-
+                        {user?.role === "admin" && (
+                            <Link
+                                to="/admin"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="font-medium"
+                            >
+                                Admin
+                            </Link>
+                        )}
                         {user ? (
                             <>
                                 <Link

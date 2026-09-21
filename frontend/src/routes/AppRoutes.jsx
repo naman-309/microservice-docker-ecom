@@ -8,6 +8,8 @@ import Feedback from "../pages/Feedback/Feedback.jsx"
 import Architecture from "../pages/Architecture/Architecture .jsx"
 import ProductDetails from "../pages/ProductDetails/ProductDetails"
 import Profile from "../pages/Profile/Profile"
+import Dashboard from "../pages/admin/Dashboard/Dashboard.jsx"
+import Orders from "../pages/admin/Orders/Orders"
 function AppRoutes() {
     return (
         <Routes>
@@ -48,6 +50,8 @@ function AppRoutes() {
                 element={<ProductDetails />}
             />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/orders" element={<Orders />} />
         </Routes>
     )
 }
