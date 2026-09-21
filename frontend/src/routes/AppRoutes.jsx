@@ -13,6 +13,8 @@ import Feedback from "../pages/Feedback/Feedback.jsx"
 import Architecture from "../pages/Architecture/Architecture .jsx"
 import Profile from "../pages/Profile/Profile.jsx"
 
+import MyOrders from "../pages/Orders/Orders.jsx"
+
 import Dashboard from "../pages/admin/Dashboard/Dashboard.jsx"
 import Orders from "../pages/admin/Orders/Orders.jsx"
 import AdminProducts from "../pages/admin/Products/Products.jsx"
@@ -48,6 +50,11 @@ function AppRoutes() {
             <Route
                 path="/profile"
                 element={<Profile />}
+            />
+
+            <Route
+                path="/orders"
+                element={<MyOrders />}
             />
 
             {/* Admin Pages */}
