@@ -108,6 +108,22 @@ const getMyOrders = async (userId) => {
     return orders;
 };
 
+
+// Get All Orders - Admin
+const getAllOrders = async () => {
+
+    const orders = await prisma.order.findMany({
+        include: {
+            items: true,
+        },
+
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return orders;
+};
 // Get Single Order
 const getOrderById = async (userId, orderId) => {
 
@@ -220,6 +236,7 @@ const deleteOrder = async (userId, orderId) => {
 export {
     createOrder,
     getMyOrders,
+    getAllOrders,
     getOrderById,
     updateOrderStatus,
     deleteOrder,

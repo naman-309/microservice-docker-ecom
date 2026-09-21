@@ -1,8 +1,8 @@
 import express from "express";
-
 import {
     createOrder,
     getMyOrders,
+    getAllOrders,
     getOrderById,
     updateOrderStatus,
     deleteOrder,
@@ -16,7 +16,13 @@ router.post("/", authenticateUser, createOrder);
 
 // Get My Orders
 router.get("/", authenticateUser, getMyOrders);
-
+// Get All Orders - Admin only
+router.get(
+    "/admin",
+    authenticateUser,
+    authorizeRoles("admin"),
+    getAllOrders
+);
 // Get Single Order
 router.get("/:id", authenticateUser, getOrderById);
 

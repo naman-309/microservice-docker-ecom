@@ -1,6 +1,7 @@
 import {
     createOrder as createOrderService,
     getMyOrders as getMyOrdersService,
+    getAllOrders as getAllOrdersService,
     getOrderById as getOrderByIdService,
     updateOrderStatus as updateOrderStatusService,
     deleteOrder as deleteOrderService,
@@ -45,7 +46,19 @@ const getMyOrders = async (req, res, next) => {
         next(error);
     }
 };
+// Get All Orders - Admin
+const getAllOrders = async (req, res, next) => {
+    try {
+        const orders = await getAllOrdersService();
 
+        res.status(200).json({
+            message: "All orders fetched successfully",
+            orders,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 // Get Single Order
 const getOrderById = async (req, res, next) => {
@@ -117,6 +130,7 @@ const deleteOrder = async (req, res, next) => {
 export {
     createOrder,
     getMyOrders,
+    getAllOrders,
     getOrderById,
     updateOrderStatus,
     deleteOrder,

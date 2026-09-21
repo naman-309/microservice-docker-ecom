@@ -65,7 +65,7 @@ const login = async (req, res, next) => {
     }
 };
 
-// profile
+//profile
 const getProfile = async (req, res, next) => {
     try {
         res.status(200).json({
@@ -73,11 +73,15 @@ const getProfile = async (req, res, next) => {
             name: req.user.name,
             email: req.user.email,
             user: req.user,
-        });
+        }
+
+        );
+        console.log(req.user.email)
     } catch (error) {
         next(error);
     }
 };
+
 //logout
 const logout = async (req, res, next) => {
     try {
