@@ -46,6 +46,12 @@ function Navbar() {
                     </Link>
 
                     <Link
+                        to="/orders"
+                        className="text-sm text-gray-700 hover:text-black"
+                    >
+                        Orders
+                    </Link>
+                    <Link
                         to="/feedback"
                         className="text-sm text-gray-700 hover:text-black"
                     >
@@ -144,6 +150,12 @@ function Navbar() {
                             Products
                         </Link>
 
+                        <Link
+                            to="/orders"
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Orders
+                        </Link>
                         <Link
                             to="/feedback"
                             onClick={() => setIsMenuOpen(false)}
