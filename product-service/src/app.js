@@ -1,9 +1,15 @@
+import cors from "cors";
 import express from "express";
 import productRoutes from "./modules/product/product.routes.js";
 
 const app = express();
-
-// Parse JSON body
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    })
+)
+// Parse JSON bodycd .
 app.use(express.json());
 
 // Health check
