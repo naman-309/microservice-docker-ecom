@@ -35,5 +35,10 @@ router.put(
 );
 
 // Delete Order
-router.delete("/:id", authenticateUser, deleteOrder);
+router.delete(
+    "/:id",
+    authenticateUser,
+    authorizeRoles("admin", "user"),
+    deleteOrder
+);
 export default router;

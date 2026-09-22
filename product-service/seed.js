@@ -1,147 +1,109 @@
-import prisma from "./src/config/db.js";
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 const products = [
     {
+        id: "prod-001",
+        name: "Wireless Headphones",
+        price: 1499,
+        stock: 50,
+        imageUrl:
+            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+    },
+    {
         id: "prod-002",
-        name: "Linen Shirt",
-        price: 799,
-        stock: 25,
+        name: "Mechanical Keyboard",
+        price: 2499,
+        stock: 35,
+        imageUrl:
+            "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-003",
-        name: "Cotton Shirt",
-        price: 699,
-        stock: 30,
+        name: "Gaming Mouse",
+        price: 999,
+        stock: 70,
+        imageUrl:
+            "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-004",
-        name: "Denim Shirt",
-        price: 999,
-        stock: 18,
+        name: "Ultrawide Monitor",
+        price: 18999,
+        stock: 15,
+        imageUrl:
+            "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-005",
-        name: "Oversized T-Shirt",
-        price: 599,
-        stock: 40,
+        name: "USB-C Hub",
+        price: 1299,
+        stock: 60,
+        imageUrl:
+            "https://images.unsplash.com/photo-1625842268584-8f3296236761?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-006",
-        name: "Polo T-Shirt",
-        price: 749,
-        stock: 22,
+        name: "Wireless Gaming Controller",
+        price: 2999,
+        stock: 25,
+        imageUrl:
+            "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-007",
-        name: "Cargo Pant",
-        price: 1199,
-        stock: 15,
+        name: "Laptop Stand",
+        price: 899,
+        stock: 45,
+        imageUrl:
+            "https://images.unsplash.com/photo-1618424181497-157f25b6ddd5?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-008",
-        name: "Linen Pant",
-        price: 899,
-        stock: 20,
+        name: "Portable Bluetooth Speaker",
+        price: 1799,
+        stock: 40,
+        imageUrl:
+            "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-009",
-        name: "Regular Fit Jeans",
-        price: 1299,
-        stock: 17,
+        name: "Smart Watch",
+        price: 3999,
+        stock: 30,
+        imageUrl:
+            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
     },
     {
         id: "prod-010",
-        name: "Slim Fit Jeans",
-        price: 1399,
-        stock: 12,
-    },
-    {
-        id: "prod-011",
-        name: "Casual Shorts",
-        price: 599,
-        stock: 28,
-    },
-    {
-        id: "prod-012",
-        name: "Formal Shirt",
-        price: 899,
-        stock: 16,
-    },
-    {
-        id: "prod-013",
-        name: "Printed Shirt",
-        price: 799,
-        stock: 24,
-    },
-    {
-        id: "prod-014",
-        name: "Plain T-Shirt",
-        price: 499,
-        stock: 45,
-    },
-    {
-        id: "prod-015",
-        name: "Hoodie",
-        price: 1499,
-        stock: 10,
-    },
-    {
-        id: "prod-016",
-        name: "Sweatshirt",
-        price: 1299,
-        stock: 14,
-    },
-    {
-        id: "prod-017",
-        name: "Track Pant",
-        price: 899,
-        stock: 21,
-    },
-    {
-        id: "prod-018",
-        name: "Chino Pant",
-        price: 1099,
-        stock: 19,
-    },
-    {
-        id: "prod-019",
-        name: "Denim Jacket",
-        price: 1799,
-        stock: 8,
-    },
-    {
-        id: "prod-020",
-        name: "Casual Blazer",
-        price: 2299,
-        stock: 7,
-    },
-    {
-        id: "prod-021",
-        name: "Summer Shirt",
-        price: 749,
-        stock: 32,
-    },
-    {
-        id: "prod-022",
-        name: "trendy Shirt",
-        price: 749,
-        stock: 32,
-    }
-];
+        name: "Wireless Earbuds",
+        price: 1999,
+        stock: 55,
+        imageUrl:
+            "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=800&q=80",
+    }]
 
 const seedProducts = async () => {
     try {
-        await prisma.product.createMany({
-            data: products,
-            skipDuplicates: true,
-        });
+        console.log("Starting product seed...")
 
-        console.log("20 products added successfully");
+        for (const product of products) {
+            await prisma.product.upsert({
+                where: {
+                    id: product.id,
+                },
+                update: product,
+                create: product,
+            })
+        }
+
+        console.log("20 products seeded successfully.")
     } catch (error) {
-        console.error("Error adding products:", error);
+        console.error("Failed to seed products:", error)
     } finally {
-        await prisma.$disconnect();
+        await prisma.$disconnect()
     }
-};
+}
 
-seedProducts();
+seedProducts()

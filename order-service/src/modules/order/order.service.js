@@ -1,18 +1,20 @@
-import axios from "axios";
-import prisma from "../../config/db.js";
-import { redisClient } from "../../config/redis.js";
-import { publishOrderCreated } from "../../events/order.events.js";
+import axios from "axios"
+import prisma from "../../config/db.js"
+import { redisClient } from "../../config/redis.js"
+import { publishOrderCreated } from "../../events/order.events.js"
+
+
 // Create Order
 const createOrder = async (userId, orderData) => {
-    const { items } = orderData;
+    const { items } = orderData
 
     // Order items check karo
     if (!items || items.length === 0) {
-        throw new Error("Order items are required");
+        throw new Error("Order items are required")
     }
 
-    let totalAmount = 0;
-    const orderItems = [];
+    let totalAmount = 0
+    const orderItems = []
 
     // Har product ko check karna
     for (const item of items) {
@@ -20,26 +22,29 @@ const createOrder = async (userId, orderData) => {
         // Product Service se product lena
         const response = await axios.get(
             `http://product-service:4001/api/products/${item.productId}`
-        );
+        )
 
-        const product = response.data.data;
+        const product = response.data.data
 
         // Stock check
         if (product.stock < item.quantity) {
-            throw new Error(`Not enough stock for ${product.name}`);
+            throw new Error(
+                `Not enough stock for ${product.name}`
+            )
         }
 
         // Total calculate
-        const itemTotal = product.price * item.quantity;
+        const itemTotal =
+            product.price * item.quantity
 
-        totalAmount = totalAmount + itemTotal;
+        totalAmount = totalAmount + itemTotal
 
         // OrderItem ke liye data
         orderItems.push({
             productId: product.id,
             quantity: item.quantity,
             price: product.price,
-        });
+        })
     }
 
     // Order database me save karo
@@ -56,7 +61,7 @@ const createOrder = async (userId, orderData) => {
         include: {
             items: true,
         },
-    });
+    })
 
     // Publish order created event
     await publishOrderCreated({
@@ -64,27 +69,42 @@ const createOrder = async (userId, orderData) => {
         userId: order.userId,
         items: order.items,
         totalAmount: order.totalAmount,
-    });
+    })
+
     // Old orders cache delete karo
-    await redisClient.del(`orders:${userId}`);
+    await redisClient.del(
+        `orders:${userId}`
+    )
 
     return order
-};
-// Get My all Orders
+}
+
+
+// Get My Orders
 const getMyOrders = async (userId) => {
 
     // User ke orders ke liye Redis key
-    const cacheKey = `orders:${userId}`;
+    const cacheKey = `orders:${userId}`
 
     // Pehle Redis me check karo
-    const cachedOrders = await redisClient.get(cacheKey);
+    const cachedOrders =
+        await redisClient.get(cacheKey)
 
     // Agar Redis me data mil gaya
     if (cachedOrders) {
-        return JSON.parse(cachedOrders);
+        console.log(
+            `Orders cache hit: ${cacheKey}`
+        )
+
+        return JSON.parse(cachedOrders)
     }
 
-    // Redis me data nahi mila to database se orders lao
+    console.log(
+        `Orders cache miss: ${cacheKey}`
+    )
+
+    // Redis me data nahi mila
+    // Database se orders lao
     const orders = await prisma.order.findMany({
         where: {
             userId,
@@ -97,16 +117,16 @@ const getMyOrders = async (userId) => {
         orderBy: {
             createdAt: "desc",
         },
-    });
+    })
 
     // Database se mile orders Redis me save karo
     await redisClient.set(
         cacheKey,
         JSON.stringify(orders)
-    );
+    )
 
-    return orders;
-};
+    return orders
+}
 
 
 // Get All Orders - Admin
@@ -120,14 +140,18 @@ const getAllOrders = async () => {
         orderBy: {
             createdAt: "desc",
         },
-    });
+    })
 
-    return orders;
-};
+    return orders
+}
+
+
 // Get Single Order
-const getOrderById = async (userId, orderId) => {
+const getOrderById = async (
+    userId,
+    orderId
+) => {
 
-    // User ka specific order database se find karo
     const order = await prisma.order.findFirst({
         where: {
             id: orderId,
@@ -137,101 +161,126 @@ const getOrderById = async (userId, orderId) => {
         include: {
             items: true,
         },
-    });
+    })
 
-    // Agar order nahi mila
     if (!order) {
-        throw new Error("Order not found");
+        throw new Error("Order not found")
     }
 
-    return order;
-};
-//// Update Order Status
-const updateOrderStatus = async (orderId, status) => {
+    return order
+}
 
-    // Order find karo
+
+// Update Order Status - Admin
+const updateOrderStatus = async (
+    orderId,
+    status
+) => {
+
+    // Pehle order find karo
+    // Isse userId bhi milega
     const order = await prisma.order.findUnique({
         where: {
             id: orderId,
         },
-    });
+    })
 
     // Order nahi mila
     if (!order) {
-        throw new Error("Order not found");
+        throw new Error("Order not found")
     }
 
     // Status update karo
-    const updatedOrder = await prisma.order.update({
-        where: {
-            id: orderId,
-        },
+    const updatedOrder =
+        await prisma.order.update({
+            where: {
+                id: orderId,
+            },
 
-        data: {
-            status,
-        },
-    });
+            data: {
+                status,
+            },
+        })
+
+    // IMPORTANT:
+    // User ke cached orders ko delete karo
+    await redisClient.del(
+        `orders:${order.userId}`
+    )
+
+    console.log(
+        `Orders cache invalidated: orders:${order.userId}`
+    )
 
     // Updated order return karo
-    return updatedOrder;
-};
+    return updatedOrder
+}
+
 
 // Delete Order
-const deleteOrder = async (userId, orderId) => {
+const deleteOrder = async (
+    userId,
+    orderId,
+    role
+) => {
 
-    // 1. User ka order find karo
-    const order = await prisma.order.findFirst({
-        where: {
-            id: orderId,
-            userId,
-        },
-        include: {
-            items: true,
-        },
-    });
+    let order
+
+    // Admin kisi bhi order ko delete kar sakta hai
+    if (role === "admin") {
+
+        order = await prisma.order.findUnique({
+            where: {
+                id: orderId,
+            },
+
+            include: {
+                items: true,
+            },
+        })
+
+    } else {
+
+        // Normal user sirf apna order delete kar sakta hai
+        order = await prisma.order.findFirst({
+            where: {
+                id: orderId,
+                userId,
+            },
+
+            include: {
+                items: true,
+            },
+        })
+    }
 
     if (!order) {
-        throw new Error("Order not found");
+        throw new Error("Order not found")
     }
 
-    // 2. Har product ka stock wapas add karo
-    for (const item of order.items) {
-
-        const response = await axios.get(
-            `http://localhost:4001/api/products/${item.productId}`
-        );
-
-        const product = response.data.data;
-
-        const newStock = product.stock + item.quantity;
-
-        await axios.put(
-            `http://localhost:4001/api/products/${item.productId}`,
-            {
-                stock: newStock,
-            }
-        );
-    }
-
-    // 3. Pehle OrderItems delete karo
+    // Order items delete karo
     await prisma.orderItem.deleteMany({
         where: {
             orderId,
         },
-    });
+    })
 
-    // 4. Ab main Order delete karo
-    const deletedOrder = await prisma.order.delete({
-        where: {
-            id: orderId,
-        },
-    });
+    // Main order delete karo
+    const deletedOrder =
+        await prisma.order.delete({
+            where: {
+                id: orderId,
+            },
+        })
 
-    // 5. Redis cache invalidate karo
-    await redisClient.del(`orders:${userId}`);
+    // User ke order cache ko clear karo
+    await redisClient.del(
+        `orders:${order.userId}`
+    )
 
-    return deletedOrder;
-};
+    return deletedOrder
+}
+
 
 export {
     createOrder,
@@ -240,4 +289,4 @@ export {
     getOrderById,
     updateOrderStatus,
     deleteOrder,
-};
+}
