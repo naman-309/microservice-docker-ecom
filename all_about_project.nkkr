@@ -1,12 +1,10 @@
 # 🚀 E-Commerce Microservices
 
 ## My Personal Project Handbook
-
----
-
 # 1. 🧠 Project ka Main Idea
 
-Hum ek **Basic E-Commerce Microservices Platform** bana rahe hain.
+
+*Basic E-Commerce Microservices Platform** bana rahe hain.
 
 Is project mein main backend ko ek single application ki jagah multiple independent services mein divide kar raha hoon.
 
@@ -26,11 +24,9 @@ Frontend directly services se baat nahi karega.
 
 Frontend → Nginx → Proper Service
 
----
 
 # 2. 🏗️ Complete Architecture
 
-```text
                          👤 CUSTOMER
                               │
                               ▼
@@ -53,9 +49,7 @@ Frontend → Nginx → Proper Service
           │                          │
           ▼                          ▼
       Products                    Orders
-```
 
----
 
 # 3. 🧩 Technologies We Are Using
 
